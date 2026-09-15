@@ -34,6 +34,34 @@ object ZhipuNativeClient {
     }
     
     /**
+     * 获取智谱 GLM 支持的模型列表
+     */
+    suspend fun listModels(client: HttpClient): List<AppModelInfo> {
+        try {
+            // 智谱模型列表 API
+            val response = client.get("/api/paas/v4/models").body<ZhipuModelListResponse>()
+            
+            val models = mutableListOf<AppModelInfo>()
+            response.data?.forEach { model ->
+                models.add(
+                    AppModelInfo(
+                        id = model.model,
+                        name = model.model,
+                        provider = ProviderType.Zhipu,
+                        category = ModelCategory.Chat::class.java.simpleName,
+                        supportsStream = true
+                    )
+                )
+            }
+            
+            return models
+        } catch (e: Exception) {
+            // 如果失败返回空列表
+            return emptyList()
+        }
+    }
+    
+    /**
      * 调用智谱 GLM 原生 API
      * 端点：POST /api/paas/v4/chat/completions
      */
@@ -103,3 +131,11 @@ object ZhipuNativeClient {
         }
     }
 }
+
+// 智谱模型列表响应
+@Serializable
+data class ZhipuModelListResponse(
+    val code: Int,
+    val msg: String,
+    val data: List<ZhipuModelItem>? = null
+)

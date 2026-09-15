@@ -22,12 +22,67 @@ class ChatViewModel : ViewModel() {
     private val _currentProvider = MutableStateFlow<ProviderType>(ProviderType.OpenAI)
     val currentProvider: StateFlow<ProviderType> = _currentProvider.asStateFlow()
     
+    // 模型列表相关状态
+    private val _availableModels = MutableStateFlow<Map<ProviderType, List<AppModelInfo>>>(emptyMap())
+    val availableModels: StateFlow<Map<ProviderType, List<AppModelInfo>>> = _availableModels.asStateFlow()
+    
     var showSettings = false
     
     private val conversationHistory = mutableListOf<ChatMessage>()
     
+    init {
+        // 初始化时加载各提供商的模型列表
+        loadAllModels()
+    }
+    
     fun setProvider(provider: ProviderType) {
         _currentProvider.value = provider
+    }
+    
+    /**
+     * 加载所有可用模型
+     */
+    private fun loadAllModels() {
+        viewModelScope.launch {
+            try {
+                val models = mutableMapOf<ProviderType, List<AppModelInfo>>()
+                
+                // 并行加载各提供商的模型列表
+                val openAiDeferred = async { 
+                    ApiManager.getOpenAIClient()?.let { OpenAIClient.listModels(it) } ?: emptyList()
+                }
+                
+                val dashScopeDeferred = async { 
+                    ApiManager.getDashScopeClient()?.let { DashScopeNativeClient.listModels(it) } ?: emptyList()
+                }
+                
+                val zhipuDeferred = async { 
+                    ApiManager.getZhipuClient()?.let { ZhipuNativeClient.listModels(it) } ?: emptyList()
+                }
+                
+                models[ProviderType.OpenAI] = openAiDeferred.await()
+                models[ProviderType.DashScope] = dashScopeDeferred.await()
+                models[ProviderType.Zhipu] = zhipuDeferred.await()
+                
+                _availableModels.value = models
+            } catch (e: Exception) {
+                // 忽略错误，保持空列表
+            }
+        }
+    }
+    
+    /**
+     * 获取当前提供商的模型列表
+     */
+    fun getCurrentProviderModels(): List<AppModelInfo> {
+        return _availableModels.value[_currentProvider.value] ?: emptyList()
+    }
+    
+    /**
+     * 重新加载模型列表
+     */
+    fun reloadModels() {
+        loadAllModels()
     }
     
     fun sendMessage(text: String) {

@@ -23,6 +23,12 @@ fun ChatScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val currentProvider by viewModel.currentProvider.collectAsState()
     
+    // 获取当前提供商的可用模型
+    val availableModels = remember(currentProvider) {
+        viewModel.getCurrentProviderModels()
+    }
+    
+    var selectedModel by remember { mutableStateOf<String?>(null) }
     var inputText by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     
@@ -46,6 +52,90 @@ fun ChatScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // 模型选择区域
+            Surface(
+                tonalElevation = 2.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // 提供商选择
+                    ExposedDropdownMenuBox(
+                        expanded = false,
+                        onExpandedChange = {}
+                    ) {
+                        Text(
+                            text = when (currentProvider) {
+                                is ProviderType.OpenAI -> "OpenAI"
+                                is ProviderType.DashScope -> "阿里云百炼"
+                                is ProviderType.Zhipu -> "智谱 GLM"
+                            },
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            fontWeight = FontWeight.Medium
+                        )
+                        
+                        DropdownMenu(
+                            expanded = false,
+                            onDismissRequest = {}
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("OpenAI") },
+                                onClick = { viewModel.setProvider(ProviderType.OpenAI) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("阿里云百炼") },
+                                onClick = { viewModel.setProvider(ProviderType.DashScope) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("智谱 GLM") },
+                                onClick = { viewModel.setProvider(ProviderType.Zhipu) }
+                            )
+                        }
+                    }
+                    
+                    // 模型选择
+                    if (availableModels.isNotEmpty()) {
+                        ExposedDropdownMenuBox(
+                            expanded = false,
+                            onExpandedChange = {}
+                        ) {
+                            Text(
+                                text = selectedModel ?: "选择模型...",
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            
+                            DropdownMenu(
+                                expanded = false,
+                                onDismissRequest = {}
+                            ) {
+                                availableModels.forEach { model ->
+                                    DropdownMenuItem(
+                                        text = { Text(model.name) },
+                                        onClick = { 
+                                            selectedModel = model.id
+                                            viewModel.setProvider(model.provider)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = "加载中...",
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                    }
+                }
+            }
+            
             // 消息列表
             LazyColumn(
                 modifier = Modifier

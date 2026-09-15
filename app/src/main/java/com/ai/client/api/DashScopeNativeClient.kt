@@ -36,6 +36,39 @@ object DashScopeNativeClient {
     }
     
     /**
+     * 获取阿里云百炼支持的模型列表
+     */
+    suspend fun listModels(client: HttpClient): List<AppModelInfo> {
+        try {
+            // 百炼模型列表 API
+            val response = client.get("/api/v1/workspaces").body<DashScopeWorkspacesResponse>()
+            
+            // 从工作空间中提取模型信息
+            val models = mutableListOf<AppModelInfo>()
+            response.workspaces?.forEach { workspace ->
+                workspace.models?.forEach { model ->
+                    if (model.available == true) {
+                        models.add(
+                            AppModelInfo(
+                                id = model.model_name,
+                                name = model.model_name,
+                                provider = ProviderType.DashScope,
+                                category = ModelCategory.Chat::class.java.simpleName,
+                                supportsStream = true
+                            )
+                        )
+                    }
+                }
+            }
+            
+            return models
+        } catch (e: Exception) {
+            // 如果失败返回空列表
+            return emptyList()
+        }
+    }
+    
+    /**
      * 调用百炼原生文本生成 API
      * 端点：POST /api/v1/services/aigc/text-generation/generation
      */
@@ -105,3 +138,17 @@ object DashScopeNativeClient {
         }
     }
 }
+
+// 百炼工作空间响应（用于获取模型列表）
+@Serializable
+data class DashScopeWorkspacesResponse(
+    val workspaces: List<DashScopeWorkspace>? = null,
+    val code: String? = null,
+    val message: String? = null
+)
+
+@Serializable
+data class DashScopeWorkspace(
+    val workspace_name: String,
+    val models: List<DashScopeModelItem>? = null
+)

@@ -97,10 +97,14 @@ fun SettingsDialog(viewModel: ChatViewModel) {
                             ApiManager.initOpenAI(openAIApiKey, openAiBaseUrl)
                             ApiManager.initDashScope(dashScopeApiKey)
                             ApiManager.initZhipu(zhipuApiKey, zhipuBaseUrl)
+                            
+                            // 保存后重新加载模型列表
+                            viewModel.reloadModels()
+                            
                             viewModel.showSettings = false
                         }
                     ) {
-                        Text("💾 保存配置")
+                        Text("💾 保存并刷新模型")
                     }
                 }
             }

@@ -33,6 +33,28 @@ object OpenAIClient {
         }
     }
     
+    /**
+     * 获取 OpenAI 支持的模型列表
+     */
+    suspend fun listModels(client: HttpClient): List<AppModelInfo> {
+        try {
+            val response = client.get("/v1/models").body<OpenAIModelListResponse>()
+            
+            return response.data.map { model ->
+                AppModelInfo(
+                    id = model.id,
+                    name = model.id,
+                    provider = ProviderType.OpenAI,
+                    category = ModelCategory.Chat::class.java.simpleName,
+                    supportsStream = true
+                )
+            }
+        } catch (e: Exception) {
+            // 如果失败返回空列表
+            return emptyList()
+        }
+    }
+    
     suspend fun chat(
         client: HttpClient,
         model: String,
@@ -89,10 +111,19 @@ object OpenAIClient {
     }
 }
 
-// SSE Chunk 模型（用于流式）
+// OpenAI 模型列表响应（使用 @SerialName 处理 object 字段名冲突）
+@Serializable
+data class OpenAIModelListResponse(
+    val data: List<OpenAIModelItem>,
+    @kotlinx.serialization.SerialName("object")
+    val `object`: String
+)
+
+// ==================== SSE Chunk 模型（用于流式）====================
 @Serializable
 data class OpenAIChoiceChunk(
     val id: String,
+    @kotlinx.serialization.SerialName("object")
     val `object`: String,
     val created: Long,
     val model: String,
