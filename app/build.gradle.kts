@@ -74,7 +74,6 @@ dependencies {
     implementation("androidx.preference:preference-ktx:1.2.1")
 
     // Network & Serialization
-    implementation("io.github.zhuojji:kotlin-openai-client:1.0.0")
     implementation("io.ktor:ktor-client-core:2.3.5")
     implementation("io.ktor:ktor-client-okhttp:2.3.5")
     implementation("io.ktor:ktor-client-content-negotiation:2.3.5")
